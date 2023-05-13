@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# && git clone --quiet "https://github.com/aquaproj/aqua-registry" "${AQUA_ROOT_DIR}/standard-registry" > /dev/null \
+# echo "export AQUA_GLOBAL_CONFIG=\"\${AQUA_ROOT_DIR}/aqua.yaml:\${AQUA_ROOT_DIR}/standard-registry/aqua-all.yaml\" ;" ; \
 set -efuo pipefail ;
 ENV_FILE_PATH="${XDG_CONFIG_HOME%/*}/etc/env.d/aqua" ; \
 AQUA_ROOT_DIR="${XDG_CONFIG_HOME%/*}/aquaproj-aqua" ; \
@@ -6,10 +8,9 @@ AQUA_ROOT_DIR="${XDG_CONFIG_HOME%/*}/aquaproj-aqua" ; \
 { \
   mkdir -p "${AQUA_ROOT_DIR}/bin" "$(dirname "${ENV_FILE_PATH}")" \
   && [ -d "${AQUA_ROOT_DIR}/standard-registry" ] && rm -r "${AQUA_ROOT_DIR}/standard-registry" \
-  && git clone --quiet "https://github.com/aquaproj/aqua-registry" "${AQUA_ROOT_DIR}/standard-registry" > /dev/null \
   && { \
     echo "export AQUA_ROOT_DIR=\"${AQUA_ROOT_DIR}\";" ; \
-    echo "export AQUA_GLOBAL_CONFIG=\"\${AQUA_ROOT_DIR}/aqua.yaml:\${AQUA_ROOT_DIR}/standard-registry/aqua-all.yaml\" ;" ; \
+    echo "export AQUA_GLOBAL_CONFIG=\"\${AQUA_ROOT_DIR}/aqua.yaml\" ;" ; \
     echo "export PATH=\"\${AQUA_ROOT_DIR}/bin:\${PATH}\" ;" ; \
   } | tee "${ENV_FILE_PATH}" > /dev/null 2>&1 \
   && chmod +x "${ENV_FILE_PATH}" ; \
@@ -26,9 +27,9 @@ AQUA_ROOT_DIR="${XDG_CONFIG_HOME%/*}/aquaproj-aqua" ; \
 && aqua -v || exit 1 \
 && { \
   [ ! -r "${AQUA_ROOT_DIR}/aqua.yaml" ] && aqua init "${AQUA_ROOT_DIR}/aqua.yaml" ; \
-} || exit 1 \
-&& aqua policy allow "${AQUA_ROOT_DIR}/standard-registry/aqua-policy.yaml" || exit 1 \
-&& aqua i -l -a || exit 1 ;
+} || exit 1 ;
+# && aqua policy allow "${AQUA_ROOT_DIR}/standard-registry/aqua-policy.yaml" || exit 1 \
+# && aqua i -l -a || exit 1 ;
 # TODO add upstart job to update registry
 # https://aquaproj.github.io/docs/guides/install-all-packages/
 
