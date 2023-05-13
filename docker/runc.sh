@@ -4,6 +4,10 @@ if ! crew --version >/dev/null 2>&1; then
   echo >&2 "ERROR: chromebrew not found"
   exit 1
 fi
+if ! go version >/dev/null 2>&1; then
+  echo >&2 "ERROR: go not found"
+  exit 1
+fi
 tmp="$(mktemp -d)" ;
 ! { crew list installed | grep -qEo 'libseccomp($|\W)' ; } && { yes | crew install "libseccomp" || exit 1 ; } || true \
 && pushd "${tmp}" > /dev/null 2>&1 \
