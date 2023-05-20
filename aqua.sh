@@ -2,6 +2,10 @@
 # && git clone --quiet "https://github.com/aquaproj/aqua-registry" "${AQUA_ROOT_DIR}/standard-registry" > /dev/null \
 # echo "export AQUA_GLOBAL_CONFIG=\"\${AQUA_ROOT_DIR}/aqua.yaml:\${AQUA_ROOT_DIR}/standard-registry/aqua-all.yaml\" ;" ; \
 set -efuo pipefail ;
+
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 ; \
+REPO_ROOT="$(git rev-parse --show-toplevel)" ; \
+REPO_ROOT="$(readlink -f "${REPO_ROOT}")"; \
 ENV_FILE_PATH="${XDG_CONFIG_HOME%/*}/etc/env.d/aqua" ; \
 AQUA_ROOT_DIR="${XDG_CONFIG_HOME%/*}/aquaproj-aqua" ; \
 # shellcheck disable=SC1090
@@ -26,7 +30,7 @@ AQUA_ROOT_DIR="${XDG_CONFIG_HOME%/*}/aquaproj-aqua" ; \
   | bash \
 && aqua -v || exit 1 \
 && { \
-  [ ! -r "${AQUA_ROOT_DIR}/aqua.yaml" ] && aqua init "${AQUA_ROOT_DIR}/aqua.yaml" ; \
+  ln -sf "${REPO_ROOT}" "${AQUA_ROOT_DIR}/aqua.yaml" ; \
 } || exit 1 ;
 # && aqua policy allow "${AQUA_ROOT_DIR}/standard-registry/aqua-policy.yaml" || exit 1 \
 # && aqua i -l -a || exit 1 ;
