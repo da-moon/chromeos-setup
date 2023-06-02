@@ -83,3 +83,48 @@ git config --global "alias.next-patch-release" '!git describe --tags $(git rev-l
 git config --global "alias.next-minor-release" '!git describe --tags $(git rev-list --tags --max-count=1 2>/dev/null) 2>/dev/null'"| awk -F. '{gsub(\"v\",\"\",\$1);printf \"%s.%s.0\", \$1,\$2+1}END {if (NR==0){print \"0.0.1\"}}'"
 git config --global "alias.next-major-release" '!git describe --tags $(git rev-list --tags --max-count=1 2>/dev/null) 2>/dev/null'"| awk -F. '{gsub(\"v\",\"\",\$1);printf \"%s.0.0\", \$1+1}END {if (NR==0){print \"0.0.1\"}}'"
 git config --global 'alias.fa' '!f() { cd "$(git rev-parse --show-toplevel)" && git ls-files -m -o --exclude-standard | fzf -0 --print0 --multi --reverse --height=40% --tabstop=2 --prompt=" │ " --color="prompt:0,hl:178,hl+:178" --preview-window="right:60%" --height="80%" --bind="tab:ignore" --bind="shift-tab:ignore" --bind="ctrl-t:ignore" --bind="ctrl-g:ignore" --bind="right:toggle+down" --bind="left:toggle+up" --bind="ctrl-space:select-all" --bind="alt-space:deselect-all" --preview="git difftool --tool=delta  {}" | xargs -0 -t -o -I {} git add "{}";  }; f'
+{
+  echo '[ -n $(tty) ] && export GPG_TTY="$(tty)" ;'
+} | sudo tee "/etc/profile.d/git.sh" >/dev/null
+# setting up passwordless gpg
+SIGNING_KEY="$(git config "user.signingkey")"
+# GPG_KEY_PASS="${GPG_KEY_PASS:-"00000000"}" # NOTE: your gpg key password; defaults to 8 zeros
+if [ -n "$(command -v "pass")"  ]  &&  [ -n "${SIGNING_KEY}" ] && [ -n "${GPG_KEY_PASS+x}" ] && [ -n "${GPG_KEY_PASS}" ]; then
+  NAME="$(id -un)"
+  EMAIL="${NAME}@$(cat /proc/sys/kernel/hostname).local"
+  if ! gpg --list-keys "${EMAIL}" &>/dev/null; then
+    # NOTE: create a gpg key for encrypting local passwords
+    #  gpg --batch --passphrase '' --quick-gen-key "${NAME} <${EMAIL}>" rsa4096
+    gpg --full-gen-key --batch <(
+                             echo "Key-Type: 1"
+                             echo "Key-Length: 4096"
+                             echo "Subkey-Type: 1"
+                             echo "Subkey-Length: 4096"
+                             echo "Expire-Date: 0"
+                             echo "Name-Real: ${NAME}"
+                             echo "Name-Email: ${EMAIL}"
+                             echo "%no-protection"
+    )
+  fi
+  GPG_KEY="$(gpg --list-signatures --with-colons | sed -nr "/sig/{/${EMAIL}/{s/^([^:]*[:]){4}([^:]+)[:].*$/\2/p}}" | head -n 1)"
+  ! pass ls "gpg" >/dev/null 2>&1 && pass init -p "gpg" "${GPG_KEY}" 2>/dev/null
+  echo -n "${GPG_KEY_PASS}" | pass insert -mf "gpg/${SIGNING_KEY}" >/dev/null  2>&1
+  cat <<'EOF' | sudo tee '/usr/local/bin/gpg-without-tty' >/dev/null
+SIGNING_KEY="$(git config "user.signingkey")"
+if [ -n "${SIGNING_KEY}" ]; then
+  echo "$(pass "gpg/${SIGNING_KEY}" 2>/dev/null)" \
+  | "$(command -v gpg 2>/dev/null)" \
+    --batch \
+    --no-tty \
+    --pinentry-mode loopback \
+    --passphrase-fd 0 "$@"
+else
+"$(command -v gpg 2>/dev/null)" "$@"
+fi
+EOF
+  sudo chmod +x '/usr/local/bin/gpg-without-tty'
+  git config --global gpg.program "/usr/local/bin/gpg-without-tty"
+  [ ! -r "${HOME}/.gnupg/gpg-agent.conf" ] && touch "${HOME}/.gnupg/gpg-agent.conf"
+  sed -i '/allow-loopback-pinentry/d' "${HOME}/.gnupg/gpg-agent.conf"
+  echo "allow-loopback-pinentry" >>"${HOME}/.gnupg/gpg-agent.conf"
+fi
