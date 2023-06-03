@@ -30,11 +30,11 @@ AQUA_STANDARD_REGISTRY_PATH="${AQUA_ROOT_DIR}/standard-registry"
 }
 [ ! -d "${AQUA_STANDARD_REGISTRY_PATH}" ] \
   && git clone --quiet "https://github.com/aquaproj/aqua-registry" "${AQUA_STANDARD_REGISTRY_PATH}"
-  # pushd "${AQUA_STANDARD_REGISTRY_PATH}" >/dev/null  2>&1
-  # git reset --hard >/dev/null  2>&1
-  # git pull >/dev/null  2>&1
-  # aqua policy allow "aqua-policy.yaml" || exit 1
-  # popd >/dev/null 2>&1
+  pushd "${AQUA_STANDARD_REGISTRY_PATH}" >/dev/null  2>&1
+  git reset --hard >/dev/null  2>&1
+  git pull >/dev/null  2>&1
+  aqua policy allow "aqua-policy.yaml" || exit 1
+  popd >/dev/null 2>&1
 # shellcheck disable=SC1090
 # NOTE: we are using sed for OS detection because default grep
 # in chromeos is built with --disable-perl-regexp flag; this
@@ -95,6 +95,7 @@ EOF
   sudo initctl stop "$(basename -s.conf "${UPSTART_FILE}")" || true
   rm -f "${TMPDIR}/$(basename -s.conf "${UPSTART_FILE}")"* || true
   sudo initctl start "$(basename -s.conf "${UPSTART_FILE}")" &
+  # sleep 3 ;
   # tail -f "${TMPDIR}/$(basename -s.conf "${UPSTART_FILE}")"*".log"
 fi
 

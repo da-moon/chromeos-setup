@@ -1,18 +1,31 @@
 #!/usr/bin/env bash
 
-cat << 'EOF' | sudo tee "/etc/init/remount.conf" > /dev/null ;
+UPSTART_FILE="/etc/init/remount.conf"
+  cat <<EOF | sudo tee "${UPSTART_FILE}" >/dev/null
 description "Permissive mounts under user HOME"
 start on start-user-session
-stop on stopping ui
-post-start script
+stop on runlevel [!2345]
+task
+script
 (
-set -x
-for mnt in $( /bin/findmnt --list --submounts --noheadings --nofsroot  --output TARGET "${HOME%/*}");do
-  /bin/mount --internal-only --options "remount,exec,suid,symfollow" "${mnt}"
-done
-) > "/tmp/remount.done" 2>&1
+  for mnt in \$( $(command -v findmnt) --list --submounts --noheadings --nofsroot  --output TARGET .. );do
+    (
+      set -x ;
+      $(command -v mount) --internal-only --options "remount,exec,suid,symfollow" "\${mnt}"
+    );
+  done
+    (
+      set -x ;
+      $(command -v mount) -o mode=1777,nodev -t tmpfs tmpfs "\${TMPDIR}"
+    );
+) > "\$TMPDIR/$(basename -s.conf "${UPSTART_FILE}")-\$(date +'%H-%M-%S-%N').log" 2>&1
 end script
-env HOME="/home/chronos/user"
+chdir "${HOME}"
+env TMPDIR="${TMPDIR}"
 EOF
-sudo initctl start remount ;
-
+sudo initctl stop "$(basename -s.conf "${UPSTART_FILE}")" || true
+rm -f "${TMPDIR}/$(basename -s.conf "${UPSTART_FILE}")"* || true
+sudo initctl start "$(basename -s.conf "${UPSTART_FILE}")" &
+# sleep 3 ;
+# cat "${UPSTART_FILE}"
+# tail -f "${TMPDIR}/$(basename -s.conf "${UPSTART_FILE}")"*".log"
