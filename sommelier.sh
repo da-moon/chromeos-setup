@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-set -efuo pipefail ;
+set -efuo pipefail
 if ! crew --version >/dev/null 2>&1; then
   echo >&2 "ERROR: chromebrew not found"
   exit 1
 fi
-if ! sommelier.elf --version > /dev/null 2>&1; then
+if ! sommelier.elf --version >/dev/null  2>&1; then
   echo >&2 "INFO: sommelier not found. installing ..."
   yes | crew install sommelier
 fi
 DRM_DEVICES_LIST=($(/usr/local/bin/find "/dev/dri" -name "renderD*"))
 if [[ "${#DRM_DEVICES_LIST[@]}" -gt 1 ]]; then
   for dev in "${DRM_DEVICES_LIST[@]}"; do
-    if [[ "$(/usr/local/bin/coreutils --coreutils-prog=readlink -f "/sys/class/drm/${dev}/device/driver")" =~ (bus/pci|drm) ]]; then
+    if [[ "$(/usr/bin/coreutils --coreutils-prog=readlink -f "/sys/class/drm/${dev}/device/driver")" =~ (bus/pci|drm) ]]; then
       SOMMELIER_DRM_DEVICE="/dev/dri/${dev##*/}"
       break
     fi
@@ -20,7 +20,7 @@ else
   SOMMELIER_DRM_DEVICE="/dev/dri/${DRM_DEVICES_LIST[0]##*/}"
 fi
 # https://www.reddit.com/r/Crostini/comments/94wenl/how_to_get_other_chromeos_keyboard_shortcuts/
-cat << EOF | sudo tee "/etc/init/sommelier.conf" > /dev/null ;
+cat <<EOF  | sudo tee "/etc/init/sommelier.conf" >/dev/null
 description "Sommelier"
 start on start-user-session
 stop on stopping ui
