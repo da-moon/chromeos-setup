@@ -7,11 +7,12 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 REPO_ROOT="$(readlink -f "${REPO_ROOT}")"
 ENV_FILE_PATH="${XDG_CONFIG_HOME%/*}/etc/env.d/aqua"
 AQUA_ROOT_DIR="${AQUA_ROOT_DIR:-${XDG_CONFIG_HOME%/*}/aquaproj-aqua}"
-AQUA_STANDARD_REGISTRY_PATH="${AQUA_ROOT_DIR}/standard-registry"
+AQUA_STANDARD_REGISTRY_PATH="${AQUA_STANDARD_REGISTRY_PATH:-${AQUA_ROOT_DIR}/standard-registry}"
 {
   mkdir -p "${AQUA_ROOT_DIR}/bin" "$(dirname "${ENV_FILE_PATH}")" \
     && {
       echo "export AQUA_ROOT_DIR=\"${AQUA_ROOT_DIR}\";"
+      echo "export AQUA_STANDARD_REGISTRY_PATH=\"${AQUA_STANDARD_REGISTRY_PATH}\";"
       echo "export AQUA_GLOBAL_CONFIG=\"\${AQUA_STANDARD_REGISTRY_PATH}/aqua-all.yaml\" ;"
       echo "export PATH=\"\${AQUA_ROOT_DIR}/bin:\${PATH}\" ;"
     } | tee "${ENV_FILE_PATH}" >/dev/null 2>&1 \
@@ -48,7 +49,6 @@ if [ "$(sed -nr -e '/^ID=/{s/ID=//p}' '/etc/os-release')" == "chromeos" ]; then
   cat <<EOF | sudo tee "${UPSTART_FILE}" >/dev/null
 description "service for updating aqua after logging in"
 start on start-user-session
-stop on runlevel [!2345]
 task
 script
 (
