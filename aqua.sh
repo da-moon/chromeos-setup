@@ -71,13 +71,13 @@ script
       if $(command -v aqua) which "\${BIN}" >/dev/null  2>&1; then
         SRC="\$($(command -v aqua) which "\${BIN}")" ;
         DST="${XDG_CONFIG_HOME%/*}/bin/\${BIN}" ;
-        if [ -L "\${DST}" ];then
-          DST="\$(readlink -f "\${DST}" 2>/dev/null)"
-        fi
-        if [ -L "\${DST}" ] && [ "\${SRC}" != "\${DST}"  ]; then
+        if [ "\${SRC}" != "\${DST}"  ]; then
           (
             set -x ;
-            $(command -v ln) -sf "\${SRC}" "\${DST}" ;
+            if [ ! -r "\${DST}" ] || [ -L "\${DST}" ] ; then
+              # DST="\$(readlink -f "\${DST}" 2>/dev/null)" ;
+              $(command -v ln) -sf "\${SRC}" "\${DST}" ;
+            fi
           ) ;
        fi
      fi ;
