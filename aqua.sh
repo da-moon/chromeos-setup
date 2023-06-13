@@ -9,12 +9,12 @@ ENV_FILE_PATH="${XDG_CONFIG_HOME%/*}/etc/env.d/aqua"
 AQUA_ROOT_DIR="${AQUA_ROOT_DIR:-${XDG_CONFIG_HOME%/*}/aquaproj-aqua}"
 AQUA_STANDARD_REGISTRY_PATH="${AQUA_STANDARD_REGISTRY_PATH:-${AQUA_ROOT_DIR}/standard-registry}"
 {
+  # echo "export PATH=\"\${AQUA_ROOT_DIR}/bin:\${PATH}\" ;"
   mkdir -p "${AQUA_ROOT_DIR}/bin" "$(dirname "${ENV_FILE_PATH}")" \
     && {
       echo "export AQUA_ROOT_DIR=\"${AQUA_ROOT_DIR}\";"
       echo "export AQUA_STANDARD_REGISTRY_PATH=\"${AQUA_STANDARD_REGISTRY_PATH}\";"
       echo "export AQUA_GLOBAL_CONFIG=\"\${AQUA_STANDARD_REGISTRY_PATH}/aqua-all.yaml\" ;"
-      echo "export PATH=\"\${AQUA_ROOT_DIR}/bin:\${PATH}\" ;"
     } | tee "${ENV_FILE_PATH}" >/dev/null 2>&1 \
     && chmod +x "${ENV_FILE_PATH}"
 } || exit 1
@@ -71,7 +71,10 @@ script
       if $(command -v aqua) which "\${BIN}" >/dev/null  2>&1; then
         SRC="\$($(command -v aqua) which "\${BIN}")" ;
         DST="${XDG_CONFIG_HOME%/*}/bin/\${BIN}" ;
-        if [ "\${SRC}" != "\${DST}"  ]; then
+        if [ -L "\${DST}" ];then
+          DST="\$(readlink -f "\${DST}" 2>/dev/null)"
+        fi
+        if [ -L "\${DST}" ] && [ "\${SRC}" != "\${DST}"  ]; then
           (
             set -x ;
             $(command -v ln) -sf "\${SRC}" "\${DST}" ;
