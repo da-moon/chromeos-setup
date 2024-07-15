@@ -1,0 +1,58 @@
+#!/sbin/openrc-run
+
+description="Keybase GUI"
+
+depend() {
+    need keybase
+}
+
+start_pre() {
+    # Set default environment variables if not already set
+    : ${USER:=chronos}
+    : ${UID:=1000}
+    : ${HOME:=/home/${USER}}
+    : ${XDG_RUNTIME_DIR:=/run/user/${UID}}
+
+    export USER UID HOME XDG_RUNTIME_DIR
+
+    # Source environment files if they exist
+    if [ -f $XDG_RUNTIME_DIR/keybase/keybase.gui.env ]; then
+        source $XDG_RUNTIME_DIR/keybase/keybase.gui.env
+    fi
+
+    if [ -f $HOME/.config/keybase/keybase.autogen.env ]; then
+        source $HOME/.config/keybase/keybase.autogen.env
+    fi
+
+    if [ -f $HOME/.config/keybase/keybase.env ]; then
+        source $HOME/.config/keybase/keybase.env
+    fi
+}
+
+start() {
+    ebegin "Starting Keybase GUI"
+    start-stop-daemon --start --user ${USER} --exec /opt/keybase/Keybase
+    eend $?
+}
+
+start_post() {
+    ebegin "Unsetting KEYBASE_AUTOSTART environment variable"
+    unset KEYBASE_AUTOSTART
+    eend $?
+}
+
+stop() {
+    ebegin "Stopping Keybase GUI"
+    start-stop-daemon --stop --user ${USER} --exec /opt/keybase/Keybase
+    eend $?
+}
+
+restart() {
+    svc_stop
+    svc_start
+}
+
+# Kill only the main process, allowing it to terminate its children
+kill_opts="--user ${USER} --signal KILL"
+
+retry="::"
