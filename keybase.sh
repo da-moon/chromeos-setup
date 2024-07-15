@@ -44,3 +44,23 @@ pushd "${srcdir}" >/dev/null  2>&1 \
   | xargs -0 -r -I {} cp "{}" "${XDG_CONFIG_HOME%/*}/bin" \
   && keybase --version \
   && popd >/dev/null 2>&1
+  # NOTE: for non-chromeos systemd machines
+  if systemctl --version > /dev/null 2>&1 ; then
+    SERVICES=($(find "packaging/linux/systemd" -type f -name '*.service' -exec sh -c 'basename {}'  \;))
+    sudo cp packaging/linux/systemd/*.service "/usr/lib/systemd/user" ;
+    find \
+    -type f \
+    -executable \
+    -exec sh -c ' \
+    { \
+      [ "$(file -b --mime-type "{}")" = "application/x-executable" ] \
+      || [ "$(file -b --mime-type "{}")" = "application/x-pie-executable" ] ; \
+    } && [ "$(file -b --mime-encoding "{}")" = "binary" ] \
+    && basename {}' \; \
+    | sudo xargs -r -I {} ln -sf "/usr/local/bin/{}" "/usr/bin/{}" ;
+    sudo systemctl daemon-reload
+    sudo systemctl --machine="$(id -un)@.host" --user daemon-reload
+    for SERVICE in "${SERVICES[@]}"; do
+      systemctl --machine="$(id -un)@.host" --user enable --now "${SERVICE}"
+    done
+  fi
