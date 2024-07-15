@@ -1,0 +1,53 @@
+#!/sbin/openrc-run
+
+description="Keybase Root Redirector for KBFS"
+
+depend() {
+    need keybase
+}
+
+start_pre() {
+    # Set default environment variables if not already set
+    : ${USER:=chronos}
+    : ${UID:=1000}
+    : ${HOME:=/home/${USER}}
+    : ${XDG_RUNTIME_DIR:=/run/user/${UID}}
+
+    export USER UID HOME XDG_RUNTIME_DIR
+
+    # Source environment files if they exist
+    if [ -f $HOME/.config/keybase/keybase.autogen.env ]; then
+        source $HOME/.config/keybase/keybase.autogen.env
+    fi
+
+    if [ -f $HOME/.config/keybase/keybase.env ]; then
+        source $HOME/.config/keybase/keybase.env
+    fi
+
+    # Abort if root redirector is explicitly disabled
+    /usr/bin/keybase --use-root-config-file config get --direct --assert-false --assert-ok-on-nil disable-root-redirector
+    if [ $? -ne 0 ]; then
+        eerror "Root redirector is explicitly disabled."
+        return 1
+    fi
+}
+
+start() {
+    ebegin "Starting Keybase Root Redirector for KBFS"
+    start-stop-daemon --start --user ${USER} --exec /usr/bin/keybase-redirector -- /keybase
+    eend $?
+}
+
+stop() {
+    ebegin "Stopping Keybase Root Redirector for KBFS"
+    start-stop-daemon --stop --exec /usr/bin/keybase-redirector
+    eend $?
+}
+
+restart() {
+    svc_stop
+    svc_start
+}
+
+# Specify the service should restart on failure
+retry="::"
