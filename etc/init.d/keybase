@@ -1,0 +1,54 @@
+#!/sbin/openrc-run
+
+description="Keybase core service"
+
+depend() {
+    # Specify any dependencies if needed, for now, there are none
+    # e.g., need net
+}
+
+start_pre() {
+    # Set default environment variables if not already set
+    : ${USER:=chronos}
+    : ${UID:=1000}
+    : ${HOME:=/home/${USER}}
+    : ${XDG_RUNTIME_DIR:=/run/user/${UID}}
+
+    export USER UID HOME XDG_RUNTIME_DIR
+
+    # Set the environment variable specific to this service
+    export KEYBASE_SERVICE_TYPE=systemd
+
+    # Source environment files if they exist
+    if [ -f $XDG_RUNTIME_DIR/keybase/keybase.env ]; then
+        source $XDG_RUNTIME_DIR/keybase/keybase.env
+    fi
+
+    if [ -f $HOME/.config/keybase/keybase.autogen.env ]; then
+        source $HOME/.config/keybase/keybase.autogen.env
+    fi
+
+    if [ -f $HOME/.config/keybase/keybase.env ]; then
+        source $HOME/.config/keybase/keybase.env
+    fi
+}
+
+start() {
+    ebegin "Starting Keybase core service"
+    start-stop-daemon --start --user ${USER} --exec /usr/bin/keybase -- --use-default-log-file --debug service
+    eend $?
+}
+
+stop() {
+    ebegin "Stopping Keybase core service"
+    start-stop-daemon --stop --user ${USER} --exec /usr/bin/keybase
+    eend $?
+}
+
+restart() {
+    svc_stop
+    svc_start
+}
+
+# Ensure the service restarts on failure
+retry="::"
